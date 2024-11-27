@@ -48,7 +48,8 @@ def exploracion_dataframe(dataframe, columna_control, estadisticos = False):
     dataframe_categoricas = dataframe.select_dtypes(include = "O")
     
     for col in dataframe_categoricas.columns:
-        print(f"La columna {col.upper()} tiene las siguientes valore únicos:")
+        print(f"La columna {col.upper()} tiene los siguientes valores únicos:")
+        print(f"Mostrando {pd.DataFrame(dataframe[col].value_counts()).head().shape[0]} categorías con más valores del total de {len(pd.DataFrame(dataframe[col].value_counts()))} categorías ({pd.DataFrame(dataframe[col].value_counts()).head().shape[0]}/{len(pd.DataFrame(dataframe[col].value_counts()))})")
         display(pd.DataFrame(dataframe[col].value_counts()).head())    
     
     # como estamos en un problema de A/B testing y lo que realmente nos importa es comparar entre el grupo de control y el de test, los principales estadísticos los vamos a sacar de cada una de las categorías
@@ -67,6 +68,17 @@ def exploracion_dataframe(dataframe, columna_control, estadisticos = False):
             display(dataframe_filtrado.describe().T)
     else: 
         pass
+    print("\n----------\n")
+    print("Las principales estadísticas de las variables númericas son:")
+    display(dataframe.describe().T)
+
+    print("\n----------\n")
+    print("Las principales estadísticas de las variables categóricas son:")
+    display(dataframe.describe(include = "O").T)
+
+    print("\n----------\n")
+    print("Las características principales del dataframe son:")
+    display(dataframe.info())
 
 def separarar_df(dataframe):
     """

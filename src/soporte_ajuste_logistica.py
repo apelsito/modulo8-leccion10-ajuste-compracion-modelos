@@ -8,6 +8,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn import tree
+import shap
 
 # Para realizar la clasificación y la evaluación del modelo
 # -----------------------------------------------------------------------
@@ -50,15 +51,15 @@ class AnalisisModelosClasificacion:
 
         # Diccionario de modelos y resultados
         self.modelos = {
-            "logistic_regression": LogisticRegression(),
-            "tree": DecisionTreeClassifier(),
-            "random_forest": RandomForestClassifier(),
-            "gradient_boosting": GradientBoostingClassifier(),
-            "xgboost": xgb.XGBClassifier()
+            "logistic_regression": LogisticRegression(random_state=42),
+            "tree": DecisionTreeClassifier(random_state=42),
+            "random_forest": RandomForestClassifier(random_state=42),
+            "gradient_boosting": GradientBoostingClassifier(random_state=42),
+            "xgboost": xgb.XGBClassifier(random_state=42)
         }
         self.resultados = {nombre: {"mejor_modelo": None, "pred_train": None, "pred_test": None} for nombre in self.modelos}
 
-    def ajustar_modelo(self, modelo_nombre, param_grid=None, cross_validation = 5, ruta_guardar_modelo = "",nombre_modelo_guardar="mejor_modelo.pkl"):
+    def ajustar_modelo(self, modelo_nombre, param_grid=None, cross_validation = 5,scoring="accuracy", ruta_guardar_modelo = "",nombre_modelo_guardar="mejor_modelo.pkl"):
         """
         Ajusta el modelo seleccionado con GridSearchCV.
         """
@@ -112,12 +113,13 @@ class AnalisisModelosClasificacion:
         grid_search = GridSearchCV(estimator=modelo, 
                                    param_grid=param_grid, 
                                    cv=cross_validation, 
-                                   scoring='accuracy')
+                                   scoring=scoring)
         
         grid_search.fit(self.X_train, self.y_train)
         self.resultados[modelo_nombre]["pred_train"] = grid_search.best_estimator_.predict(self.X_train)
         self.resultados[modelo_nombre]["pred_test"] = grid_search.best_estimator_.predict(self.X_test)
         self.resultados[modelo_nombre]["mejor_modelo"] = grid_search.best_estimator_
+        
         # Guardar el modelo
         with open(f'{ruta_guardar_modelo}/{nombre_modelo_guardar}', 'wb') as f:
             pickle.dump(grid_search.best_estimator_, f)
@@ -205,16 +207,20 @@ class AnalisisModelosClasificacion:
                 labels = [f'1: {label1}', f'0: {label0}']
             else:
                 labels = [f'1', f'0']
-            sns.heatmap(matriz_confusion[::-1, ::-1], annot=True, fmt="g",cmap="Blues", xticklabels=labels, yticklabels=labels)
+            sns.heatmap(matriz_confusion[::-1, ::-1], annot=True, fmt="g",cmap="Purples", xticklabels=labels, yticklabels=labels)
             plt.title("Matriz de Confusión (Invertida)")
+            plt.xlabel("Predicción")
+            plt.ylabel("Real")
         else: 
             plt.figure(figsize=(tamano_grafica))
             if labels == True:
                 labels = [f'0: {label0}', f'1: {label1}']
             else:
                 labels = [f'0', f'1']
-            sns.heatmap(matriz_confusion, annot=True, fmt="g",cmap="Blues", xticklabels=labels, yticklabels=labels)
+            sns.heatmap(matriz_confusion, annot=True, fmt="g",cmap="Purples", xticklabels=labels, yticklabels=labels)
             plt.title("Matriz de Confusión")
+            plt.xlabel("Predicción")
+            plt.ylabel("Real")
 
     def plot_curva_ROC(self, grafica_size = (9,7)):
         """
@@ -223,7 +229,7 @@ class AnalisisModelosClasificacion:
         if self.prob_test is None:
             raise ValueError("Debe calcular las probabilidades (calcular_metricas) antes de graficar la curva ROC.")
         
-        fpr, tpr, _ = roc_curve(self.y_test, self.prob_test)
+        fpr, tpr, umbral = roc_curve(self.y_test, self.prob_test)
         plt.figure(figsize=grafica_size)
         sns.lineplot(x=fpr, y=tpr, color="orange", label="Modelo")
         sns.lineplot(x=[0, 1], y=[0, 1], color="grey", linestyle="--", label="Azar")
@@ -265,3 +271,55 @@ class AnalisisModelosClasificacion:
         plt.xlabel("Importancia")
         plt.ylabel("Características")
         plt.show()
+
+    def plot_shap_summary(self, modelo_nombre):
+        """
+        Genera un SHAP summary plot para el modelo seleccionado.
+        Maneja correctamente modelos de clasificación con múltiples clases.
+        """
+        if modelo_nombre not in self.resultados:
+            raise ValueError(f"Modelo '{modelo_nombre}' no reconocido.")
+
+        modelo = self.resultados[modelo_nombre]["mejor_modelo"]
+
+        if modelo is None:
+            raise ValueError(f"Debe ajustar el modelo '{modelo_nombre}' antes de generar el SHAP plot.")
+
+        # Usar TreeExplainer para modelos basados en árboles
+        if modelo_nombre in ["tree", "random_forest", "gradient_boosting", "xgboost"]:
+            explainer = shap.TreeExplainer(modelo)
+            shap_values = explainer.shap_values(self.X_test)
+
+            # Verificar si los SHAP values tienen múltiples clases (dimensión 3)
+            if isinstance(shap_values, list):
+                # Para modelos binarios, seleccionar SHAP values de la clase positiva
+                shap_values = shap_values[1]
+            elif len(shap_values.shape) == 3:
+                # Para Decision Trees, seleccionar SHAP values de la clase positiva
+                shap_values = shap_values[:, :, 1]
+        else:
+            # Usar el explicador genérico para otros modelos
+            explainer = shap.Explainer(modelo, self.X_test, check_additivity=False)
+            shap_values = explainer(self.X_test).values
+
+        # Generar el summary plot estándar
+        shap.summary_plot(shap_values, self.X_test, feature_names=self.X.columns)
+
+# Función para asignar colores
+def color_filas_por_modelo(row):
+    if row["modelo"] == "decision tree":
+        return ["background-color: #e6b3e0; color: black"] * len(row)  
+    
+    elif row["modelo"] == "random_forest":
+        return ["background-color: #c2f0c2; color: black"] * len(row) 
+
+    elif row["modelo"] == "gradient_boosting":
+        return ["background-color: #ffd9b3; color: black"] * len(row)  
+
+    elif row["modelo"] == "xgboost":
+        return ["background-color: #f7b3c2; color: black"] * len(row)  
+
+    elif row["modelo"] == "regresion lineal":
+        return ["background-color: #b3d1ff; color: black"] * len(row)  
+    
+    return ["color: black"] * len(row)

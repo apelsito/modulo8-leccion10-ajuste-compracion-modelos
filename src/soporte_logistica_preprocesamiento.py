@@ -19,57 +19,6 @@ from imblearn.over_sampling import RandomOverSampler, SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.combine import SMOTETomek
 
-
-def exploracion_datos(dataframe):
-
-    """
-    Realiza una exploración básica de los datos en el DataFrame dado e imprime varias estadísticas descriptivas.
-
-    Parameters:
-    -----------
-    dataframe : pandas DataFrame. El DataFrame que se va a explorar.
-
-    Returns:
-    --------
-    None
-
-    Imprime varias estadísticas descriptivas sobre el DataFrame, incluyendo:
-    - El número de filas y columnas en el DataFrame.
-    - El número de valores duplicados en el DataFrame.
-    - Una tabla que muestra las columnas con valores nulos y sus porcentajes.
-    - Las principales estadísticas de las variables numéricas en el DataFrame.
-    - Las principales estadísticas de las variables categóricas en el DataFrame.
-
-    """
-
-    print(f"El número de filas es {dataframe.shape[0]} y el número de columnas es {dataframe.shape[1]}")
-
-    print("\n----------\n")
-
-    print(f"En este conjunto de datos tenemos {dataframe.duplicated().sum()} valores duplicados")
-
-    
-    print("\n----------\n")
-
-
-    print("Los columnas con valores nulos y sus porcentajes son: ")
-    dataframe_nulos = dataframe.isnull().sum()
-
-    display((dataframe_nulos[dataframe_nulos.values >0] / dataframe.shape[0]) * 100)
-
-    print("\n----------\n")
-    print("Las principales estadísticas de las variables númericas son:")
-    display(dataframe.describe().T)
-
-    print("\n----------\n")
-    print("Las principales estadísticas de las variables categóricas son:")
-    display(dataframe.describe(include = "O").T)
-
-    print("\n----------\n")
-    print("Las características principales del dataframe son:")
-    display(dataframe.info())
-
-
 class Visualizador:
     """
     Clase para visualizar la distribución de variables numéricas y categóricas de un DataFrame.

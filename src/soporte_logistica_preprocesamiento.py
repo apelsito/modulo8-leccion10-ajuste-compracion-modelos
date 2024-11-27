@@ -2,7 +2,9 @@
 # -----------------------------------------------------------------------
 import numpy as np
 import pandas as pd
-
+# Para pruebas estadísticas
+# -----------------------------------------------------------------------
+from scipy.stats import chi2_contingency
 # Otros objetivos
 # -----------------------------------------------------------------------
 import math
@@ -276,3 +278,15 @@ class Desbalanceo:
         df_resampled = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name=self.variable_dependiente)], axis=1)
         return df_resampled
 
+def detectar_orden_cat(df,lista_cat,var_respuesta):
+    for categoria in lista_cat:
+        print(f"Estamos evaluando el orden de la variable {categoria.upper()}")
+        df_cross_tab=pd.crosstab(df[categoria], df[var_respuesta])
+        display(df_cross_tab)
+
+        chi2, p, dof, expected= chi2_contingency(df_cross_tab)
+
+        if p <0.05:
+            print(f"La variable {categoria} SI tiene orden")
+        else:
+            print(f"La variable {categoria} NO tiene orden")

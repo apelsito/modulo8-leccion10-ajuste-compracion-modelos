@@ -36,13 +36,13 @@ from sklearn.preprocessing import KBinsDiscretizer
 
 
 class AnalisisModelosClasificacion:
-    def __init__(self, dataframe, variable_dependiente):
+    def __init__(self, dataframe, variable_dependiente,train_size=0.8):
         self.dataframe = dataframe
         self.variable_dependiente = variable_dependiente
         self.X = dataframe.drop(variable_dependiente, axis=1)
         self.y = dataframe[variable_dependiente]
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X, self.y, train_size=0.8, random_state=42, shuffle=True
+            self.X, self.y, train_size=train_size, random_state=42, shuffle=True
         )
 
         # Inicialización de probabilidades para ROC

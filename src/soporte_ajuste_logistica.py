@@ -119,6 +119,14 @@ class AnalisisModelosClasificacion:
         self.resultados[modelo_nombre]["pred_train"] = grid_search.best_estimator_.predict(self.X_train)
         self.resultados[modelo_nombre]["pred_test"] = grid_search.best_estimator_.predict(self.X_test)
         self.resultados[modelo_nombre]["mejor_modelo"] = grid_search.best_estimator_
+        print("-------------------------------------------------")
+        print("Parámetros de Grid Search:")
+        display(param_grid)
+        print("-------------------------------------------------")
+        print("-------------------------------------------------")
+        print("El mejor modelo es:")
+        print(grid_search.best_estimator_)
+        print("-------------------------------------------------")
         
         # Guardar el modelo
         with open(f'{ruta_guardar_modelo}/{nombre_modelo_guardar}', 'wb') as f:
